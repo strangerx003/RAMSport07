@@ -1,0 +1,24 @@
+# Dependencies and build output
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+.vercel/
+.ramsport-data/
+
+# Environment files (keep the example)
+.env*
+!.env.example
+
+# Logs and exported engineering documents
+*.log
+*.rbd
+*.fta
+*.data
+
+# Local desktop-render captures used for layout checks
+screenshots/
+.chrome-qa/
+
+# Internal archive: audits and design references, not product documentation
+docs/archive/
