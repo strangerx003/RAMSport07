@@ -1,0 +1,361 @@
+/* ==========================================================================
+   MIL-STD-1629A ? FMEA / FMECA worksheet workbench
+   Matches the RBD / FTA / Weibull workbench shell.
+   ========================================================================== */
+
+.fmeca-workbench{
+  height:calc(100vh - 176px);
+  min-height:620px;
+  display:grid;
+  grid-template-rows:44px 26px minmax(0,1fr);
+  border:1px solid #bdcad7;
+  border-radius:7px;
+  background:#fff;
+  overflow:hidden;
+  box-shadow:0 5px 18px rgba(18,42,66,.07);
+}
+
+/* ---------------------------------------------------------------- toolbar */
+.fmeca-toolbar{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:5px 10px;
+  border-bottom:1px solid #cbd6e1;
+  background:#f6f8fb;
+  white-space:nowrap;
+  overflow:hidden;
+}
+.fmeca-mode-group{display:inline-flex;height:31px;border:1px solid #c3d1de;border-radius:5px;overflow:hidden;background:#fff;flex:none}
+.fmeca-mode-group button{
+  height:100%;
+  padding:0 16px;
+  border:0;
+  border-right:1px solid #d7e1ea;
+  background:#fff;
+  color:#42586e;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.04em;
+}
+.fmeca-mode-group button:last-child{border-right:0}
+.fmeca-mode-group button:hover{background:#eef6f8;color:#0b7186}
+.fmeca-mode-group button.active{background:#0789d0;color:#fff;box-shadow:inset 0 -2px 0 rgba(0,0,0,.16)}
+
+.fmeca-inline-field{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  color:#5b7086;
+  font-size:10px;
+  font-weight:650;
+}
+.fmeca-inline-field input{
+  height:29px;
+  width:80px;
+  padding:0 6px;
+  border:1px solid #c9d6e1;
+  border-radius:4px;
+  background:#fff;
+  color:#22384f;
+  font-size:10px;
+  outline:0;
+}
+.fmeca-inline-field input:focus{border-color:#0a98ad;box-shadow:0 0 0 2px rgba(10,152,173,.12)}
+.fmeca-toolbar-spacer{flex:1}
+
+.fmeca-button{
+  height:31px;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:0 12px;
+  border:1px solid #c3d1de;
+  border-radius:5px;
+  background:#fff;
+  color:#2c4760;
+  font-size:11px;
+  font-weight:700;
+}
+.fmeca-button svg{width:13px;height:13px}
+.fmeca-button:hover:not(:disabled){border-color:#0a98ad;background:#f0fafb;color:#0a7186}
+.fmeca-button.primary{border-color:#0a7fa3;background:#0789d0;color:#fff;box-shadow:0 1px 2px rgba(20,40,60,.16)}
+.fmeca-button.primary:hover:not(:disabled){background:#0678b8;border-color:#0678b8;color:#fff}
+.fmeca-button:disabled{opacity:.55;cursor:default}
+
+/* -------------------------------------------------------------- statusbar */
+.fmeca-statusbar{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:0 11px;
+  border-bottom:1px solid #dce4ec;
+  background:#fbfcfe;
+  color:#6b7f92;
+  font-size:9px;
+  overflow:hidden;
+}
+.fmeca-statusbar > span:nth-child(2){margin-left:auto;color:#7d8ea1}
+.fmeca-statusbar > span:nth-child(3){color:#7d8ea1}
+.fmeca-notice{
+  max-width:34%;
+  overflow:hidden;
+  padding:2px 7px;
+  border:1px solid #c9e6db;
+  border-radius:4px;
+  background:#eaf7f1;
+  color:#1f7257;
+  font-size:9px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+/* ----------------------------------------------------------------- layout */
+.fmeca-layout{min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 300px}
+
+.fmeca-main{min-height:0;display:flex;flex-direction:column;gap:10px;padding:12px;overflow:hidden}
+
+.fmeca-summary{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;flex:none}
+.fmeca-result-card{
+  padding:10px 12px;
+  border:1px solid #dbe3eb;
+  border-radius:6px;
+  background:#fbfcfe;
+  min-width:0;
+}
+.fmeca-result-card.primary{border-color:#bfe2ea;background:linear-gradient(160deg,#f2fbfd,#e8f6fa)}
+.fmeca-result-card.critical{border-color:#efc3c3;background:linear-gradient(160deg,#fdf4f4,#fbe9e9)}
+.fmeca-result-card span{display:block;color:#71839a;font-size:8px;font-weight:800;letter-spacing:.06em;text-transform:uppercase}
+.fmeca-result-card strong{display:block;margin:5px 0 2px;color:#123552;font-size:17px;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fmeca-result-card.critical strong{color:#b53434}
+.fmeca-result-card small{display:block;color:#8194a7;font-size:8px}
+
+.fmeca-toolrow{display:flex;align-items:center;gap:8px;flex:none}
+.fmeca-toolrow-note{margin-left:auto;color:#7c8ea1;font-size:8.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------------------------------------------------------------- worksheet */
+.fmeca-sheet-scroll{flex:1;min-height:0;overflow:auto;border:1px solid #d6e0e9;border-radius:6px;background:#fff;scrollbar-width:thin}
+.fmeca-sheet{border-collapse:separate;border-spacing:0;table-layout:fixed;width:max-content;min-width:100%}
+.fmeca-sheet thead th{
+  position:sticky;
+  top:0;
+  z-index:3;
+  height:34px;
+  padding:0 6px;
+  border-bottom:1px solid #cfdae4;
+  border-right:1px solid #e4ebf1;
+  background:#eef3f7;
+  color:#5c7085;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.03em;
+  text-align:left;
+  white-space:nowrap;
+  overflow:visible;
+}
+.fmeca-column-resizer{position:absolute;top:0;right:-4px;z-index:6;width:8px;height:100%;cursor:col-resize;touch-action:none;user-select:none}
+.fmeca-column-resizer::after{content:"";position:absolute;top:7px;bottom:7px;left:3px;width:1px;background:#c7d3dd;opacity:.55}
+.fmeca-column-resizer:hover::after,.fmeca-column-resizer:focus-visible::after{width:2px;background:#0a98ad;opacity:1}
+.fmeca-column-resizer:focus-visible{outline:2px solid #0a98ad;outline-offset:-2px}
+.fmeca-sheet td{
+  padding:3px 4px;
+  border-bottom:1px solid #edf1f5;
+  border-right:1px solid #f1f5f8;
+  font-size:9px;
+  vertical-align:middle;
+}
+.fmeca-sheet td input,
+.fmeca-sheet td select{
+  width:100%;
+  min-width:0;
+  height:25px;
+  padding:0 5px;
+  border:1px solid #dbe4ec;
+  border-radius:4px;
+  background:#fff;
+  color:#22384f;
+  font-size:9px;
+  outline:0;
+}
+.fmeca-sheet td input:focus,
+.fmeca-sheet td select:focus{border-color:#0a98ad;box-shadow:0 0 0 2px rgba(10,152,173,.12)}
+.fmeca-sheet .sticky-col{position:sticky;left:0;z-index:2;background:#fff;box-shadow:1px 0 0 #e4ebf1}
+.fmeca-sheet thead .sticky-col{z-index:4;background:#eef3f7}
+
+.fmeca-item-row td{background:#f4f8fb;border-bottom:1px solid #dbe5ee}
+.fmeca-item-row .sticky-col{background:#f4f8fb;display:flex;flex-direction:column;gap:3px;padding:5px}
+.fmeca-sheet td input.fmeca-ref{font-weight:800;color:#164a6b;border-color:#c9dbe8}
+.fmeca-sheet td input.fmeca-item-name{color:#5d7288;font-size:8.5px}
+.fmeca-item-meta{white-space:nowrap}
+.fmeca-item-meta > span{display:inline-flex;align-items:center;gap:5px;margin-right:14px;color:#6a7f93;font-size:8.5px;vertical-align:middle}
+.fmeca-item-meta input{min-width:180px!important;height:24px!important;border-color:#d5e0e9!important}
+.fmeca-worst{padding:2px 7px;border-radius:10px;font-weight:800;font-size:8px}
+.fmeca-cr{font-family:"SFMono-Regular",Consolas,monospace;color:#4a6076!important}
+.fmeca-item-actions{display:inline-flex!important;gap:4px!important;margin-left:auto}
+.fmeca-item-actions button{
+  width:22px;
+  height:22px;
+  display:grid;
+  place-items:center;
+  border:1px solid #cfdae4;
+  border-radius:4px;
+  background:#fff;
+  color:#5c7288;
+}
+.fmeca-item-actions button svg{width:12px;height:12px}
+.fmeca-item-actions button:hover{border-color:#0a98ad;background:#eef9fa;color:#08758a}
+
+.fmeca-mode-row td{background:#fff}
+.fmeca-mode-row:hover td{background:#fafcfd}
+.fmeca-mode-cell{color:#7c8ea1}
+.fmeca-mode-tag{display:inline-block;padding:2px 6px;border-radius:3px;background:#eef3f7;color:#5c7288;font-family:"SFMono-Regular",Consolas,monospace;font-size:8px}
+.fmeca-computed{font-family:"SFMono-Regular",Consolas,monospace;color:#0a7186;text-align:right;padding-right:9px!important;background:#f6fbfc}
+.fmeca-row-delete{
+  width:22px;
+  height:22px;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:4px;
+  background:transparent;
+  color:#98a7b6;
+}
+.fmeca-row-delete svg{width:12px;height:12px}
+.fmeca-row-delete:hover{background:#fdeaea;color:#c33}
+.fmeca-empty-row td,.fmeca-table-empty{padding:18px 12px!important;color:#8496a8;font-size:9.5px;text-align:center;background:#fbfcfd}
+
+/* EN 50126 severity palette (S1 worst ? S5 least) */
+.sev-S1{--sev:#c02b2b;--sev-bg:#fbe9e9}
+.sev-S2{--sev:#d47a12;--sev-bg:#fdf3e2}
+.sev-S3{--sev:#b59a09;--sev-bg:#fbf8dd}
+.sev-S4{--sev:#3f8a5c;--sev-bg:#e9f6ee}
+.sev-S5{--sev:#4f7f9c;--sev-bg:#edf5fa}
+.fmeca-worst.sev-S1,.fmeca-worst.sev-S2,.fmeca-worst.sev-S3,.fmeca-worst.sev-S4,.fmeca-worst.sev-S5{background:var(--sev-bg);color:var(--sev)}
+.fmeca-mode-row.sev-S1 .fmeca-mode-cell{box-shadow:inset 3px 0 0 #c02b2b}
+.fmeca-mode-row.sev-S2 .fmeca-mode-cell{box-shadow:inset 3px 0 0 #d47a12}
+.fmeca-mode-row.sev-S3 .fmeca-mode-cell{box-shadow:inset 3px 0 0 #b59a09}
+.fmeca-mode-row.sev-S4 .fmeca-mode-cell{box-shadow:inset 3px 0 0 #3f8a5c}
+.fmeca-mode-row.sev-S5 .fmeca-mode-cell{box-shadow:inset 3px 0 0 #4f7f9c}
+.fmeca-sheet select.sev-S1{color:#a02424;border-color:#e7bcbc;background:#fdf3f3}
+.fmeca-sheet select.sev-S2{color:#a15a08;border-color:#efd6b0;background:#fdf8ef}
+.fmeca-sheet select.sev-S3{color:#8a7606;border-color:#e8dfa5;background:#fcf9e4}
+.fmeca-sheet select.sev-S4{color:#2f6c47;border-color:#bfe0cc;background:#f1f9f4}
+.fmeca-sheet select.sev-S5{color:#37657f;border-color:#c4dbe8;background:#f2f8fc}
+
+/* EN 50126 risk-tier palette */
+.risk-intolerable{--risk:#c02b2b;--risk-bg:#fbe9e9;--sev:#c02b2b;--sev-bg:#fbe9e9}
+.risk-undesirable{--risk:#c47a10;--risk-bg:#fdf3e2;--sev:#c47a10;--sev-bg:#fdf3e2}
+.risk-tolerable{--risk:#7a8f1c;--risk-bg:#f6f8e6;--sev:#7a8f1c;--sev-bg:#f6f8e6}
+.risk-negligible{--risk:#2f7d55;--risk-bg:#eaf7f0;--sev:#2f7d55;--sev-bg:#eaf7f0}
+.fmeca-worst.risk-intolerable,.fmeca-worst.risk-undesirable,.fmeca-worst.risk-tolerable,.fmeca-worst.risk-negligible{background:var(--risk-bg);color:var(--risk)}
+.fmeca-result-card.risk-intolerable{border-color:#efc3c3;background:linear-gradient(160deg,#fdf4f4,#fbe9e9)}
+.fmeca-result-card.risk-undesirable{border-color:#efd9b5;background:linear-gradient(160deg,#fdf9f0,#fbf0de)}
+.fmeca-result-card.risk-tolerable{border-color:#dfe6b8;background:linear-gradient(160deg,#fafbef,#f2f6dd)}
+.fmeca-result-card.risk-negligible{border-color:#bfe0cc;background:linear-gradient(160deg,#f3fbf6,#e8f6ee)}
+.fmeca-result-card.risk-intolerable strong{color:#b53434}
+
+/* -------------------------------------------------------------------- side */
+.fmeca-side{
+  min-height:0;
+  overflow:auto;
+  padding:12px;
+  border-left:1px solid #cbd6e1;
+  background:#f7f9fc;
+  display:flex;
+  flex-direction:column;
+  gap:11px;
+  scrollbar-width:thin;
+}
+.fmeca-card{border:1px solid #dbe3eb;border-radius:6px;background:#fff;padding:11px 12px}
+.fmeca-card h3{margin:0 0 6px;color:#2b425b;font-size:10px;font-weight:800}
+.fmeca-card-note{margin:0 0 9px;color:#7c8ea1;font-size:8.5px;line-height:1.5}
+.fmeca-card-note:last-child{margin:9px 0 0}
+
+.fmeca-matrix-wrap{overflow-x:auto}
+.fmeca-matrix{width:100%;min-width:330px;border-collapse:collapse;table-layout:fixed}
+.fmeca-matrix th,.fmeca-matrix td{
+  height:auto;
+  min-height:28px;
+  padding:4px 3px;
+  border:1px solid #e2e9ef;
+  text-align:center;
+  vertical-align:middle;
+  font-size:9px;
+  line-height:1.25;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  hyphens:auto;
+}
+.fmeca-matrix thead th{background:#f3f7fa;color:#6c8094;font-size:8px;font-weight:800;letter-spacing:0}
+.fmeca-matrix tbody th{width:34px;background:#f3f7fa;font-weight:800}
+.fmeca-matrix td{background:#fbfcfd;color:#9aabbb;font-family:"SFMono-Regular",Consolas,monospace}
+.fmeca-matrix tr.sev-S1 td{background:#fdf6f6}
+.fmeca-matrix tr.sev-S2 td{background:#fdfaf3}
+.fmeca-matrix tr.sev-S3 td{background:#fdfcf0}
+.fmeca-matrix tr.sev-S4 td{background:#f5fbf7}
+.fmeca-matrix tr.sev-S5 td{background:#f4f9fc}
+.fmeca-matrix tr.sev-S1 th{color:#a02424}
+.fmeca-matrix tr.sev-S2 th{color:#a15a08}
+.fmeca-matrix tr.sev-S3 th{color:#8a7606}
+.fmeca-matrix tr.sev-S4 th{color:#2f6c47}
+.fmeca-matrix tr.sev-S5 th{color:#37657f}
+.fmeca-matrix td.risk-intolerable{background:#fbe9e9;color:#a02424}
+.fmeca-matrix td.risk-undesirable{background:#fdf3e2;color:#a15a08}
+.fmeca-matrix td.risk-tolerable{background:#f6f8e6;color:#6f8117}
+.fmeca-matrix td.risk-negligible{background:#eaf7f0;color:#2f6c47}
+.fmeca-matrix td.filled{font-weight:800;box-shadow:inset 0 0 0 2px rgba(18,53,82,.35)}
+
+.fmeca-risk-legend{list-style:none;display:flex;flex-wrap:wrap;gap:5px 10px;margin:9px 0 0;padding:0;font-size:8px;color:#61758a}
+.fmeca-risk-legend li{display:inline-flex;align-items:center;gap:4px}
+.fmeca-risk-legend i{width:9px;height:9px;border-radius:2px;background:var(--risk)}
+
+.fmeca-mini-table{width:100%;border-collapse:collapse}
+.fmeca-mini-table th{padding:4px 6px;border-bottom:1px solid #dde5ec;background:#f5f8fa;color:#6c8094;font-size:8px;font-weight:800;text-align:left}
+.fmeca-mini-table td{padding:5px 6px;border-bottom:1px solid #eef2f6;color:#31465c;font-size:9px}
+.fmeca-mini-table td:last-child{font-family:"SFMono-Regular",Consolas,monospace;text-align:right}
+.fmeca-mini-table tr.sev-S1 td:first-child{color:#a02424;font-weight:700}
+.fmeca-mini-table tr.sev-S2 td:first-child{color:#a15a08;font-weight:700}
+.fmeca-mini-table tr.sev-S3 td:first-child{color:#8a7606;font-weight:700}
+.fmeca-mini-table tr.sev-S4 td:first-child{color:#2f6c47;font-weight:700}
+.fmeca-mini-table tr.sev-S5 td:first-child{color:#37657f;font-weight:700}
+.fmeca-mini-table tr.risk-intolerable td:first-child{color:#a02424;font-weight:700}
+.fmeca-mini-table tr.risk-undesirable td:first-child{color:#a15a08;font-weight:700}
+.fmeca-mini-table tr.risk-tolerable td:first-child{color:#6f8117;font-weight:700}
+.fmeca-mini-table tr.risk-negligible td:first-child{color:#2f6c47;font-weight:700}
+
+.fmeca-critical-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.fmeca-critical-list li{
+  display:grid;
+  grid-template-columns:auto 1fr;
+  gap:2px 8px;
+  padding:6px 8px;
+  border-left:3px solid var(--sev);
+  border-radius:4px;
+  background:var(--sev-bg);
+}
+.fmeca-critical-list b{grid-column:1/-1;color:#2b425b;font-size:9px}
+.fmeca-critical-list span{color:#4a6076;font-size:8.5px}
+.fmeca-critical-list em{color:var(--sev);font-size:8px;font-style:normal;font-weight:800;text-align:right}
+
+.fmeca-method-note{border:1px solid #dbe3eb;border-radius:6px;background:#fff;padding:9px 12px}
+.fmeca-method-note summary{cursor:pointer;color:#31506a;font-size:9px;font-weight:800}
+.fmeca-method-note p{margin:7px 0 0;color:#6f8194;font-size:8.5px;line-height:1.6}
+
+.fmeca-warnings{
+  padding:10px 12px;
+  border:1px solid #f0d9a8;
+  border-radius:6px;
+  background:#fdf8ec;
+  color:#7a5a17;
+}
+.fmeca-warnings strong{display:block;margin-bottom:5px;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.fmeca-warnings ul{margin:0;padding-left:16px;font-size:8.5px;line-height:1.6}
+
+@media(max-width:1180px){
+  .fmeca-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .fmeca-layout{grid-template-columns:minmax(0,1fr) 260px}
+}
+@media(max-width:980px){
+  .fmeca-layout{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
+  .fmeca-side{border-left:0;border-top:1px solid #cbd6e1;max-height:340px}
+}

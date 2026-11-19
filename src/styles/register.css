@@ -1,0 +1,332 @@
+/* ==========================================================================
+   Data Register
+   --------------------------------------------------------------------------
+   The register is a module workspace like the analysis modules: a toolbar, a
+   grid that fits the panel and a status line. It is not a spreadsheet: no
+   column letters, no formula bar, no sheet stretched far below its last row.
+   ========================================================================== */
+
+.register-workbench {
+  position: relative;
+  display: grid;
+  grid-template-rows: 46px minmax(0, 1fr) 30px;
+  height: calc(100vh - 176px);
+  min-height: 460px;
+  overflow: hidden;
+  background: #f8fafc;
+  color: #1f344a;
+  font-size: 11px;
+  border: 1px solid #d7e1ea;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(30,55,80,.08);
+  padding-bottom: 0;
+}
+
+
+/* ---------------------------------------------------------------- toolbar */
+.register-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 6px 10px;
+  border-bottom: 1px solid #cbd6e1;
+  background: #fff;
+  white-space: nowrap;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+.register-toolbar .wb-action[disabled] {
+  opacity: .45;
+  cursor: not-allowed;
+}
+.register-toolbar .register-add {
+  border: 1px solid #b9dbe3;
+  background: #edf8fa;
+  color: #076f82;
+  box-shadow: none;
+}
+.register-toolbar .register-add:hover {
+  border-color: #7fc3cf;
+  background: #dff3f6;
+  color: #055f70;
+  filter: none;
+}
+.register-toolbar .register-add svg { color: #07879b; }
+.register-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 260px;
+  max-width: 32vw;
+  height: 28px;
+  margin-left: 4px;
+  padding: 0 8px;
+  border: 1px solid #c9d6e1;
+  border-radius: 5px;
+  background: #fff;
+  color: #738597;
+}
+.register-search svg { width: 13px; height: 13px; flex: none; }
+.register-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #22384f;
+  font-size: 11px;
+}
+.register-search:focus-within {
+  border-color: #0a98ad;
+  box-shadow: 0 0 0 2px rgba(10, 152, 173, .12);
+}
+.register-matches {
+  margin-left: auto;
+  padding-right: 2px;
+  color: #7b8b9a;
+  font-size: 10px;
+}
+
+/* ------------------------------------------------------------------- grid */
+.register-table-wrap {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #b9c7d4 transparent;
+  margin:8px 10px 0;
+  border:1px solid #dce5ed;
+  border-radius:8px 8px 0 0;
+  background:#fff;
+}
+.register-table-wrap::-webkit-scrollbar { width: 10px; height: 10px; }
+.register-table-wrap::-webkit-scrollbar-thumb {
+  border: 3px solid #fff;
+  border-radius: 6px;
+  background: #b9c7d4;
+}
+.register-table-wrap::-webkit-scrollbar-thumb:hover { background: #93a7b8; }
+
+.register-table {
+  width: 100%;
+  min-width: 980px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 11px;
+}
+.register-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 36px;
+  padding: 0 9px;
+  border-bottom: 1px solid #cfdbe5;
+  background: linear-gradient(180deg,#f9fbfd,#eef4f8);
+  color: #5b7184;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.register-table thead th.computed b {
+  margin-left: 4px;
+  color: #0e7490;
+  font-size: 8px;
+}
+/* Excel-style column resize handle: sits on the header's trailing edge,
+   widens the column on drag, restores the default on double-click. */
+.register-table thead th .th-label {
+  display: inline-block;
+  max-width: calc(100% - 8px);
+  padding-right: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+.register-table thead th .col-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 3;
+}
+.register-table thead th .col-resizer::after {
+  content: "";
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  right: 3px;
+  width: 2px;
+  border-radius: 1px;
+  background: #d3dee8;
+  opacity: 0;
+  transition: opacity .12s ease;
+}
+.register-table thead th .col-resizer:hover::after,
+.register-table thead th .col-resizer:active::after { opacity: 1; background: #0a98ad; }
+.register-table.resizing,
+.register-table.resizing th,
+.register-table.resizing td,
+.register-table.resizing input,
+.register-table.resizing select { cursor: col-resize; user-select: none; }
+.register-table tbody tr { height: 38px; }
+.register-table tbody tr:nth-child(even) { background: #fbfcfd; }
+.register-table tbody tr:hover { background: #f3f9fb; }
+.register-table tbody tr.selected {
+  background: #eaf5f8;
+  box-shadow: inset 3px 0 0 #0e7490;
+}
+.register-table td {
+  padding: 0 3px;
+  border-right:1px solid #f1f4f7;
+  border-bottom: 1px solid #e8eef3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.register-table td:first-child { padding-left: 9px; }
+/* The trailing filler column soaks up surplus width on wide windows so the
+   data columns keep their capped sizes; it renders as plain row surface. */
+.register-table th.filler,
+.register-table td.filler { padding: 0; }
+.register-table td.num input { text-align: right; }
+.register-table td.computed span {
+  color: #0b6b7c;
+  font: 600 10px/1 Consolas, "SF Mono", monospace;
+  letter-spacing: -.01em;
+}
+.register-table input,
+.register-table select {
+  width: 100%;
+  height: 30px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #20384d;
+  font-size: 11px;
+  outline: 0;
+}
+.register-table select.register-state{height:25px;border:1px solid transparent;border-radius:999px;padding:0 22px 0 8px;font-size:9.5px;font-weight:700}
+.register-table select.state-draft{background:#f2f4f6;color:#667787}
+.register-table select.state-in-review{background:#fff4dc;color:#8a6412}
+.register-table select.state-validated{background:#e9f7f0;color:#087456}
+.register-table select { padding-left: 3px; }
+.register-table input:hover,
+.register-table select:hover {
+  border-color: #d5e0e9;
+  background: #fff;
+}
+.register-table input:focus,
+.register-table select:focus {
+  border-color: #0a98ad;
+  background: #fff;
+  box-shadow: 0 0 0 2px rgba(10, 152, 173, .12);
+}
+
+.register-empty {
+  position: absolute;
+  inset: 60px 0 auto;
+  margin: 0;
+  padding: 34px 20px;
+  color: #7b8b9a;
+  font-size: 11px;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------ notice/status */
+.register-notice {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0;
+  padding: 7px 12px;
+  border-bottom: 1px solid #cfe0e6;
+  background: #eef8fa;
+  color: #0b6373;
+  font-size: 10.5px;
+}
+.register-notice.error {
+  border-color: #eccfd2;
+  background: #fdf2f3;
+  color: #a4343f;
+}
+.register-notice button {
+  flex: none;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.register-status {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-width: 0;
+  padding: 0 12px;
+  border-top: 1px solid #d7e0e9;
+  background: #f5f8fb;
+  color: #687d91;
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.register-status b { color: #20384d; font-weight: 700; }
+.register-saved { margin-left: auto; color: #0b7a55; }
+.register-dirty { margin-left: auto; color: #a3670f; }
+
+@media (max-width: 760px) {
+  .register-workbench {
+    height: auto;
+    min-height: 0;
+    grid-template-rows: auto minmax(280px, 60vh) 30px;
+  }
+  .register-search { width: 160px; max-width: 40vw; }
+  .register-status { gap: 12px; }
+  .register-status span:nth-child(2) { display: none; }
+}
+
+/* ---------------------------------------------------------------- dark mode */
+html[data-theme="dark"] .register-workbench { background: #0f1a28; color: #dbe6f1; }
+html[data-theme="dark"] .register-toolbar { background: #172433; border-color: #2a3c52; }
+html[data-theme="dark"] .register-search { background: #0f1a28; border-color: #2a3c52; color: #93a7b8; }
+html[data-theme="dark"] .register-search input { color: #e6eef7; }
+html[data-theme="dark"] .register-table-wrap { background: #0f1a28; }
+html[data-theme="dark"] .register-table thead th { background: #172433; border-color: #2a3c52; color: #9db0c2; }
+html[data-theme="dark"] .register-table thead th .col-resizer::after { background: #33506a; }
+html[data-theme="dark"] .register-table thead th .col-resizer:hover::after,
+html[data-theme="dark"] .register-table thead th .col-resizer:active::after { background: #22b8cc; }
+html[data-theme="dark"] .register-table tbody tr:nth-child(even) { background: #12202e; }
+html[data-theme="dark"] .register-table tbody tr:hover { background: #172a3a; }
+html[data-theme="dark"] .register-table tbody tr.selected { background: #16303c; box-shadow: inset 3px 0 0 #22b8cc; }
+html[data-theme="dark"] .register-table td { border-color: #1e2d3b; }
+html[data-theme="dark"] .register-table input,
+html[data-theme="dark"] .register-table select { color: #e6eef7; }
+html[data-theme="dark"] .register-table input:hover,
+html[data-theme="dark"] .register-table select:hover,
+html[data-theme="dark"] .register-table input:focus,
+html[data-theme="dark"] .register-table select:focus { background: #0d1926; }
+html[data-theme="dark"] .register-table td.computed span { color: #4fd0e0; }
+html[data-theme="dark"] .register-status { background: #172433; border-color: #2a3c52; color: #93a7b8; }
+html[data-theme="dark"] .register-status b { color: #dbe6f1; }
+html[data-theme="dark"] .register-notice { background: #133240; border-color: #1f4a58; color: #8fd8e4; }
+html[data-theme="dark"] .register-notice.error { background: #3a1e22; border-color: #5a2a30; color: #f0a9b0; }
+html[data-theme="dark"] .register-empty { color: #8fa2b4; }
