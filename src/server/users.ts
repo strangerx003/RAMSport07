@@ -13,8 +13,9 @@ export type StoredUser = {
   username: string;
   usernameKey: string;
   role: "admin" | "user";
-  passwordSalt: string;
-  passwordHash: string;
+  passwordSalt?: string;
+  passwordHash?: string;
+  provider?: "google" | "microsoft";
   active: boolean;
   createdAt: string;
   createdBy: string;
@@ -71,8 +72,7 @@ function isStoredUser(value: unknown): value is StoredUser {
     && typeof candidate.username === "string"
     && typeof candidate.usernameKey === "string"
     && (candidate.role === "admin" || candidate.role === "user")
-    && typeof candidate.passwordSalt === "string"
-    && typeof candidate.passwordHash === "string";
+    && (candidate.provider === "google" || candidate.provider === "microsoft" || (typeof candidate.passwordSalt === "string" && typeof candidate.passwordHash === "string"));
 }
 
 function sanitiseUsers(value: unknown): StoredUser[] {
@@ -125,4 +125,16 @@ export async function findUserByUsername(username: string): Promise<StoredUser |
 export async function findUserByAccountId(accountId: string): Promise<StoredUser | null> {
   const users = await loadUsers();
   return users.find(user => user.accountId === accountId && user.active) ?? null;
+}
+
+export async function upsertCloudUser(email: string, provider: "google" | "microsoft"): Promise<StoredUser> {
+  const username = email.trim(); const usernameKey = username.toLowerCase();
+  let result!: StoredUser;
+  await updateUsers(users => {
+    const existing = users.find(user => user.usernameKey === usernameKey);
+    if (existing) { existing.provider = provider; existing.active = true; result = existing; return result; }
+    result = { accountId: `cloud-${provider}-${Buffer.from(usernameKey).toString("base64url").slice(0, 48)}`, username, usernameKey, role: "user", provider, active: true, createdAt: new Date().toISOString(), createdBy: "invitation" };
+    users.push(result); return result;
+  });
+  return result;
 }

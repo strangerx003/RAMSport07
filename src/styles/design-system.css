@@ -1392,7 +1392,7 @@ label { color: var(--ds-ink-soft); }
 .file-tree-icon { width: 22px; height: 22px; border-radius: 5px; }
 .file-tree-meta { color: var(--ds-faint); font-size: 9.5px; }
 
-/* Inline naming ? the row itself becomes an editable field, as in Explorer. */
+/* Inline naming — the row itself becomes an editable field, as in Explorer. */
 .file-tree-row.editing {
   background: var(--ds-surface);
   box-shadow: inset 0 0 0 1px var(--ds-accent-line);
@@ -1754,6 +1754,8 @@ table th { border-color: var(--ds-line); }
 }
 .login-tester-fill svg { width: 13px; height: 13px; }
 .login-tester-fill:hover { border-color: var(--ds-accent-line); background: var(--ds-accent-soft); }
+.cloud-login{display:grid;gap:8px;margin-top:18px;padding-top:16px;border-top:1px solid var(--ds-line)}
+.cloud-login p{margin:0;color:var(--ds-muted);font-size:11px;font-weight:750}.cloud-login a{display:flex;justify-content:center;align-items:center;min-height:36px;text-decoration:none;font-size:11px}.cloud-login small{color:var(--ds-faint);font-size:10px;line-height:1.4}
 html[data-theme="dark"] .login-tester { border-color: var(--ds-line-strong); background: var(--ds-surface-muted); }
 html[data-theme="dark"] .login-tester-row code { background: var(--ds-surface); color: var(--ds-ink); }
 html[data-theme="dark"] .login-tester-fill { background: var(--ds-surface); color: var(--ds-accent); }

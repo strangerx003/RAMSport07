@@ -123,6 +123,11 @@ function cookie(name: string, value: string, maxAge: number, secure: boolean) {
   ].join("; ");
 }
 
+/** Short-lived HttpOnly cookie for OAuth PKCE state; never used as a session. */
+export function transientCookie(name: string, value: string, request: Request, maxAge = 600): string {
+  return cookie(name, value, maxAge, isSecureRequest(request));
+}
+
 export function sessionCookie(token: string, request: Request): string {
   return cookie(SESSION_COOKIE, token, SESSION_MAX_AGE_SECONDS, isSecureRequest(request));
 }

@@ -10,7 +10,7 @@ import { createUser, isBuiltInAccount, listUsers, removeUser, StoredUser, USERS_
 
 function formatCreated(value: string) {
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "?" : date.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export default function AdminPage() {
@@ -27,6 +27,7 @@ function AdminContent() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<AccountRole>("user");
+  const [subscriberEmail, setSubscriberEmail] = useState("");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
@@ -91,7 +92,17 @@ function AdminContent() {
     }
   }
 
-  if (!session || session.role !== "admin") return <div className="boot-screen"><div className="brand-mark small">R</div><span>Checking access?</span></div>;
+  async function inviteSubscriber(event: FormEvent) {
+    event.preventDefault(); setError(""); setNotice(""); setBusy(true);
+    try {
+      const response = await fetch("/api/admin/invitations", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ email: subscriberEmail }) });
+      const result = await response.json() as { error?: string; inviteUrl?: string; email?: string };
+      if (!response.ok) throw new Error(result.error || "The invitation could not be sent.");
+      setSubscriberEmail(""); setNotice(result.inviteUrl ? `Invitation created. Configure Resend to deliver email; secure link: ${result.inviteUrl}` : `Invitation sent to ${result.email}.`);
+    } catch (issue) { setError(issue instanceof Error ? issue.message : "The invitation could not be sent."); } finally { setBusy(false); }
+  }
+
+  if (!session || session.role !== "admin") return <div className="boot-screen"><div className="brand-mark small">R</div><span>Checking access…</span></div>;
 
   return (
     <AppShell title="User Management" eyebrow="ADMINISTRATION">
@@ -115,7 +126,15 @@ function AdminContent() {
                   <option value="admin">Administrator</option>
                 </select>
               </label>
-              <button className="primary-button" type="submit" disabled={busy}>{busy ? "Adding?" : "Add user"} <Icons.plus/></button>
+              <button className="primary-button" type="submit" disabled={busy}>{busy ? "Adding…" : "Add user"} <Icons.plus/></button>
+            </form>
+          </section>
+          <section className="admin-users-card">
+            <h2>Invite cloud subscriber</h2>
+            <p className="admin-hint">Invited users sign in with Google or Microsoft 365 and save files to their own RAMSport cloud folder.</p>
+            <form onSubmit={inviteSubscriber}>
+              <label>Email address<input type="email" value={subscriberEmail} onChange={event => setSubscriberEmail(event.target.value)} placeholder="engineer@company.com" autoComplete="email" required/></label>
+              <button className="primary-button" type="submit" disabled={busy}>{busy ? "Sending…" : "Send invitation"} <Icons.plus/></button>
             </form>
           </section>
 

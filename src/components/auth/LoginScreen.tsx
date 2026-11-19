@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icons } from "@/lib/icons";
@@ -19,6 +19,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [invite, setInvite] = useState("");
   const signInRef = useRef<HTMLButtonElement | null>(null);
 
   function useTestCredentials() {
@@ -28,6 +29,8 @@ export default function LoginScreen() {
     setShowPassword(false);
     signInRef.current?.focus();
   }
+
+  useEffect(() => { setInvite(new URLSearchParams(window.location.search).get("invite") ?? ""); }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -66,17 +69,18 @@ export default function LoginScreen() {
         <div className="standard-row"><span>EN 50126</span><span>IEC 61078</span><span>IEC 61025</span><span>MIL-STD-882E</span></div>
       </div>
       <div className="network-art" aria-hidden="true"><svg viewBox="0 0 800 430"><path d="M50 290H190V170H325V260H470V115H650V235H770"/><path d="M190 290v65h280v-95M325 170V90h145v25"/><circle cx="190" cy="170" r="12"/><circle cx="325" cy="260" r="12"/><circle cx="470" cy="115" r="12"/><circle cx="650" cy="235" r="12"/></svg></div>
-      <small className="login-footer">? 2026 RAMSport ? Engineering systems you can trust</small>
+      <small className="login-footer">© 2026 RAMSport · Engineering systems you can trust</small>
     </section>
     <section className="login-panel">
       <Card className="login-card"><form onSubmit={submit}>
-        <Link className="login-back" href="/">? Back to overview</Link>
+        <Link className="login-back" href="/">← Back to overview</Link>
         <Link className="mobile-brand" href="/" aria-label="RAMSport home"><div className="brand-mark">R</div><strong>RAMSport</strong></Link>
         <p className="eyebrow">SECURE ACCESS</p><h2>Welcome back</h2><p className="muted">Sign in to continue to RAMSport.</p>
         <label>Username<input value={username} onChange={event => setUsername(event.target.value)} placeholder="Enter your username" autoComplete="username" autoFocus/></label>
         <label>Password<div className="password-field"><input type={showPassword ? "text" : "password"} value={password} onChange={event => setPassword(event.target.value)} placeholder="Enter your password" autoComplete="current-password"/><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)}>{showPassword ? "Hide" : "Show"}</button></div></label>
         {error && <div className="form-error" role="alert">{error}</div>}
-        <button className="primary-button login-button" type="submit" disabled={pending} ref={signInRef}>{pending ? "Signing in?" : "Sign in"} <span>?</span></button>
+        <button className="primary-button login-button" type="submit" disabled={pending} ref={signInRef}>{pending ? "Signing in…" : "Sign in"} <span>→</span></button>
+        {invite && <div className="cloud-login" aria-label="Subscriber cloud sign-in"><p>Invited subscriber access</p><a className="secondary-button" href={`/api/auth/google?invite=${encodeURIComponent(invite)}`}>Continue with Google Drive</a><a className="secondary-button" href={`/api/auth/microsoft?invite=${encodeURIComponent(invite)}`}>Continue with Microsoft 365</a><small>Your RAMSport files will be created in your connected cloud storage.</small></div>}
       </form>
       {SHOW_TEST_ACCESS && <aside className="login-tester" aria-label="Test access">
         <div className="login-tester-head">

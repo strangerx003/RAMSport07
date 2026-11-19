@@ -4,7 +4,7 @@
  * This module fulfils the same `/api/*` contract the application was written
  * against, but the implementation and the data now live on the server. Every
  * endpoint except sign-in requires a signed session cookie, and the account id
- * always comes from that cookie ? never from the request body ? so one account
+ * always comes from that cookie — never from the request body — so one account
  * cannot read or change another account's rows.
  */
 
@@ -13,18 +13,26 @@ import { DOCUMENT_KINDS, withDocumentExtension, type DocumentKind } from "@/lib/
 import { DEFAULT_LCC_INPUTS } from "@/engine/lcc";
 import { DEFAULT_SPARES_INPUTS } from "@/engine/spares";
 import { createPassword, newAccountId, verifyHash } from "./crypto";
+import { createHash, randomBytes } from "node:crypto";
 import {
   clearSessionCookie,
   createSessionToken,
   isSameOriginRequest,
+  readCookie,
   readSessionFromRequest,
   sessionCookie,
+  transientCookie,
 } from "./session";
+import { authoriseUrl, cloudIdentity, exchangeCode } from "./cloud-provider";
+import { acceptInvitation, cloudStatus, createInvitation, oauthConfigured, saveCloudConnection, validateInvitation, type CloudProvider } from "./cloud-auth";
+import { createCloudFolder, deleteCloudEntry, listCloudFiles, readCloudFile, renameCloudEntry, writeCloudFile } from "./cloud-files";
+import { loadCloudConnection } from "./cloud-auth";
 import { mutateRecord, readRecord, removeRecord, StorageWriteError, writeRecord } from "./store";
 import {
   findUserByAccountId,
   findUserByUsername,
   loadUsers,
+  upsertCloudUser,
   updateUsers,
   type StoredUser,
 } from "./users";
@@ -484,7 +492,7 @@ async function login(request: Request): Promise<Response> {
 
   enforceLoginLimit(key);
   const user = await findUserByUsername(username);
-  const valid = user ? await verifyHash(password, user.passwordSalt, user.passwordHash) : false;
+  const valid = user?.passwordSalt && user.passwordHash ? await verifyHash(password, user.passwordSalt, user.passwordHash) : false;
   if (!user || !valid) {
     recordLoginFailure(key);
     // A rejected attempt has no owner to write an audit row for, so it is not
@@ -508,15 +516,61 @@ async function login(request: Request): Promise<Response> {
   }, 200, { "set-cookie": sessionCookie(token, request) });
 }
 
+type OAuthPending = { state: string; verifier: string; invitation: string; provider: CloudProvider };
+const OAUTH_COOKIE = "ramsport_oauth";
+
+function redirect(path: string, request: Request, cookie?: string) {
+  return new Response(null, { status: 302, headers: { location: new URL(path, request.url).toString(), ...(cookie ? { "set-cookie": cookie } : {}) } });
+}
+
+async function startCloudLogin(request: Request, provider: CloudProvider): Promise<Response> {
+  if (!oauthConfigured(provider)) throw new ApiError(503, `${provider === "google" ? "Google" : "Microsoft"} sign-in has not been configured yet.`);
+  const invitationToken = new URL(request.url).searchParams.get("invite");
+  if (!await validateInvitation(invitationToken)) throw new ApiError(403, "Use a valid invitation link to sign in.");
+  const state = randomBytes(24).toString("base64url"), verifier = randomBytes(48).toString("base64url");
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+  const pending: OAuthPending = { state, verifier, invitation: invitationToken!, provider };
+  return new Response(null, { status: 302, headers: { location: authoriseUrl(request, provider, state, challenge), "set-cookie": transientCookie(OAUTH_COOKIE, Buffer.from(JSON.stringify(pending)).toString("base64url"), request) } });
+}
+
+async function finishCloudLogin(request: Request, provider: CloudProvider): Promise<Response> {
+  const query = new URL(request.url).searchParams;
+  const failure = query.get("error"); if (failure) return redirect(`/login?error=${encodeURIComponent("Cloud sign-in was cancelled.")}`, request);
+  const raw = readCookie(request, OAUTH_COOKIE); let pending: OAuthPending | null = null;
+  try { pending = raw ? JSON.parse(Buffer.from(raw, "base64url").toString("utf8")) as OAuthPending : null; } catch { pending = null; }
+  if (!pending || pending.provider !== provider || pending.state !== query.get("state") || !query.get("code")) throw new ApiError(403, "The sign-in request has expired. Please start again from your invitation.");
+  const tokens = await exchangeCode(request, provider, query.get("code")!, pending.verifier);
+  const connection = await cloudIdentity(provider, tokens);
+  if (!await validateInvitation(pending.invitation, connection.email)) throw new ApiError(403, "This invitation does not match the cloud account.");
+  const user = await upsertCloudUser(connection.email, provider); await saveCloudConnection(user.accountId, connection);
+  for (const folder of ["Projects", "Autosave"]) { try { await createCloudFolder(connection, folder); } catch { /* Existing folders are expected on reconnect. */ } }
+  await acceptInvitation(pending.invitation); await appendAudit(user, "auth.cloud-login", provider);
+  const token = await createSessionToken({ accountId: user.accountId, username: user.username, role: user.role, signedInAt: nowIso() });
+  return new Response(null, { status: 302, headers: { location: new URL("/dashboard", request.url).toString(), "set-cookie": sessionCookie(token, request) } });
+}
+
+async function sendInvitation(request: Request, user: StoredUser): Promise<Response> {
+  const payload = await request.json().catch(() => null) as { email?: string } | null;
+  const email = String(payload?.email ?? "").trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw badRequest("Enter a valid subscriber email address.");
+  const { invitation, token } = await createInvitation(email, user.username);
+  const inviteUrl = new URL(`/login?invite=${encodeURIComponent(token)}`, request.url).toString();
+  const resendKey = process.env.RESEND_API_KEY?.trim(), sender = process.env.RESEND_FROM?.trim();
+  if (resendKey && sender) await fetch("https://api.resend.com/emails", { method: "POST", headers: { authorization: `Bearer ${resendKey}`, "content-type": "application/json" }, body: JSON.stringify({ from: sender, to: [email], subject: "Your RAMSport invitation", html: `<p>You have been invited to RAMSport.</p><p><a href="${inviteUrl}">Open your secure sign-in link</a></p><p>This link expires in seven days.</p>` }) });
+  await appendAudit(user, "subscriber.invite", email);
+  return json({ ok: true, email: invitation.email, expiresAt: invitation.expiresAt, inviteUrl: resendKey && sender ? undefined : inviteUrl });
+}
+
 function logout(request: Request): Response {
   return json({ ok: true }, 200, { "set-cookie": clearSessionCookie(request) });
 }
 
-async function listFiles(accountId: string): Promise<Response> {
-  const map = await loadFiles(accountId);
+async function listFiles(user: StoredUser): Promise<Response> {
+  const connection = await loadCloudConnection(user.accountId);
+  const map = connection ? await listCloudFiles(connection) : await loadFiles(user.accountId);
   const entries = buildTree(map);
   const recent = flattenFiles(entries).slice(0, 12);
-  return json({ storage: "server", root: "project", entries, recent, stats: storageStats(map) });
+  return json({ storage: connection ? connection.provider : "server", root: "project", entries, recent, stats: storageStats(map) });
 }
 
 async function createEntry(request: Request, user: StoredUser): Promise<Response> {
@@ -524,6 +578,18 @@ async function createEntry(request: Request, user: StoredUser): Promise<Response
   const payload = await request.json().catch(() => null) as { action?: string; name?: string; parent?: string; kind?: string } | null;
   const action = payload?.action ?? "";
   const now = nowIso();
+  const cloud = await loadCloudConnection(accountId);
+  if (cloud) {
+    let relativePath = "";
+    if (action === "create-project") { relativePath = `Projects/${safeName(payload?.name)}`; await createCloudFolder(cloud, relativePath); }
+    else if (action === "create-folder") { relativePath = `${normalisePath(payload?.parent).path}/${safeName(payload?.name)}`; await createCloudFolder(cloud, relativePath); }
+    else if (action === "create-document") {
+      const kind = DOCUMENT_KINDS.find(item => item.kind === payload?.kind); if (!kind) throw badRequest("Choose a RAMSport document type.");
+      relativePath = `${normalisePath(payload?.parent).path}/${withDocumentExtension(payload?.name ?? "", kind.kind)}`;
+      await writeCloudFile(cloud, relativePath, `${JSON.stringify(DOCUMENT_TEMPLATES[kind.kind])}\n`);
+    } else throw badRequest("Unsupported storage action.");
+    await appendAudit(user, action, relativePath); return json({ ok: true, relativePath }, 201);
+  }
 
   const created = await updateFiles<{ relativePath: string; audit: string }>(accountId, map => {
     if (action === "create-project") {
@@ -576,6 +642,12 @@ async function renameEntry(request: Request, user: StoredUser): Promise<Response
   const payload = await request.json().catch(() => null) as { path?: string; name?: string } | null;
   const now = nowIso();
   const source = normalisePath(payload?.path).path;
+  const cloud = await loadCloudConnection(accountId);
+  if (cloud) {
+    let name = safeName(payload?.name); if (extensionOf(source) && !extensionOf(name)) name += extensionOf(source);
+    await renameCloudEntry(cloud, source, name); const target = `${parentOf(source) ? `${parentOf(source)}/` : ""}${name}`;
+    await appendAudit(user, "project.rename", target); await rewriteSaveLocations(accountId, source, target); return json({ ok: true, relativePath: target });
+  }
 
   const target = await updateFiles<string>(accountId, map => {
     const entry = map[source];
@@ -613,6 +685,8 @@ async function renameEntry(request: Request, user: StoredUser): Promise<Response
 async function deleteEntry(request: Request, user: StoredUser): Promise<Response> {
   const accountId = user.accountId;
   const source = normalisePath(new URL(request.url).searchParams.get("path")).path;
+  const cloud = await loadCloudConnection(accountId);
+  if (cloud) { await deleteCloudEntry(cloud, source); await appendAudit(user, "project.delete", source); await rewriteSaveLocations(accountId, source, null); return json({ ok: true, relativePath: source }); }
 
   await updateFiles(accountId, map => {
     if (!map[source]) throw new ApiError(404, "That file or folder no longer exists.");
@@ -630,6 +704,12 @@ async function deleteEntry(request: Request, user: StoredUser): Promise<Response
 async function readDocument(request: Request, user: StoredUser): Promise<Response> {
   const accountId = user.accountId;
   const path = normalisePath(new URL(request.url).searchParams.get("path")).path;
+  const cloud = await loadCloudConnection(accountId);
+  if (cloud) {
+    const file = await readCloudFile(cloud, path); if (byteLength(file.content) > MAX_DOCUMENT_BYTES) throw badRequest("This cloud document is too large to open.");
+    let data: unknown = null; try { data = file.content.trim() ? JSON.parse(file.content) : null; } catch { data = null; }
+    return json({ path, data, modified: file.modified, size: byteLength(file.content), storage: cloud.provider });
+  }
   const map = await loadFiles(accountId);
   const entry = map[path];
   if (!entry || entry.kind !== "file") throw new ApiError(404, "That document no longer exists.");
@@ -659,6 +739,8 @@ async function writeDocument(request: Request, user: StoredUser): Promise<Respon
   if (byteLength(text) > MAX_DOCUMENT_BYTES) throw badRequest("This document is too large to save.");
 
   const now = nowIso();
+  const cloud = await loadCloudConnection(accountId);
+  if (cloud) { await writeCloudFile(cloud, path, text); await appendAudit(user, "project.save", path); return json({ ok: true, path, modified: now, size: byteLength(text), storage: cloud.provider }); }
   await updateFiles(accountId, map => {
     const parent = parentOf(path);
     if (!parent || map[parent]?.kind !== "dir") throw badRequest("The folder no longer exists.");
@@ -906,6 +988,10 @@ export async function handleApi(request: Request, segments: string[]): Promise<R
     // the signed cookie once here, then uses this server-owned identity for
     // resource ownership and role checks below.
     if (path === "/api/auth/login" && method === "POST") return await login(request);
+    if (path === "/api/auth/google" && method === "GET") return await startCloudLogin(request, "google");
+    if (path === "/api/auth/microsoft" && method === "GET") return await startCloudLogin(request, "microsoft");
+    if (path === "/api/auth/google/callback" && method === "GET") return await finishCloudLogin(request, "google");
+    if (path === "/api/auth/microsoft/callback" && method === "GET") return await finishCloudLogin(request, "microsoft");
     const administratorPath = path === "/api/admin/users" || path.startsWith("/api/admin/users/");
     const user = administratorPath ? await requireUser(request, true) : await requireUser(request);
 
@@ -914,7 +1000,7 @@ export async function handleApi(request: Request, segments: string[]): Promise<R
       return json({ user: { accountId: user.accountId, username: user.username, role: user.role } });
     }
 
-    if (path === "/api/files" && method === "GET") return await listFiles(user.accountId);
+    if (path === "/api/files" && method === "GET") return await listFiles(user);
     if (path === "/api/files" && method === "POST") return await createEntry(request, user);
     if (path === "/api/files" && method === "PATCH") return await renameEntry(request, user);
     if (path === "/api/files" && method === "DELETE") return await deleteEntry(request, user);
@@ -926,6 +1012,7 @@ export async function handleApi(request: Request, segments: string[]): Promise<R
     if (path === "/api/profile" && method === "POST") return await saveProfile(request, user);
     if (path === "/api/profile" && method === "DELETE") return await removePhoto(user);
     if (path === "/api/profile/image" && method === "GET") return await profileImage(user);
+    if (path === "/api/cloud/status" && method === "GET") return json({ connection: await cloudStatus(user.accountId) });
 
     if (path === "/api/save-locations" && method === "GET") return await getSaveLocations(user);
     if (path === "/api/save-locations" && method === "POST") return await setSaveLocation(request, user);
@@ -940,6 +1027,10 @@ export async function handleApi(request: Request, segments: string[]): Promise<R
     }
     if (path === "/api/admin/users" && method === "POST") {
       return await createUser(request, user);
+    }
+    if (path === "/api/admin/invitations" && method === "POST") {
+      if (user.role !== "admin") throw new ApiError(403, "Administrator access required.");
+      return await sendInvitation(request, user);
     }
     if (path.startsWith("/api/admin/users/") && method === "DELETE") {
       let accountId: string;
