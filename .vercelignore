@@ -1,0 +1,14 @@
+# Files that must never be uploaded with a deployment.
+.env*
+*.rbd
+*.fta
+*.data
+*.log
+node_modules/
+.next/
+out/
+.ramsport-data/
+.chrome-qa/
+user data/
+audit logs/
+docs/archive/

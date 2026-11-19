@@ -1,0 +1,12 @@
+# Files that are not needed inside a container image.
+node_modules/
+.next/
+out/
+.ramsport-data/
+.env*
+*.rbd
+*.fta
+*.data
+*.log
+docs/archive/
+.git/

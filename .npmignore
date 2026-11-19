@@ -1,0 +1,10 @@
+docs/archive/
+.ramsport-data/
+.env*
+*.rbd
+*.fta
+*.data
+*.log
+.next/
+node_modules/
+out/
